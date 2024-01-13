@@ -1,24 +1,27 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 
 /// @custom:security-contact louisdevzz04@gmail.com
-contract NFTMarket is ERC721, ERC721URIStorage, ERC721Pausable, Ownable, ERC721Burnable {
+contract NFTMarket is ERC721, ERC721URIStorage, ERC721Pausable, ERC721Burnable {
 
     uint256 private _nextTokenId;
     uint256 private _nextMarketItem;
     uint256 public listingPrice = 0.00025 ether;
-    // uint256 public MAX_SUPPLY = 10000;
     
-    address payable _owner;
+    address payable owner;
 
-    mapping (uint256 => _nextMarketItem) private idMarketItems;
+    constructor() ERC721("NFT Pixel Marketplace", "NPX"){
+        owner == payable(msg.sender);
+    }
+
+
+    mapping (uint256 => MarketItem) private idMarketItems;
 
     struct MarketItem {
         uint256 tokenId;
@@ -37,14 +40,45 @@ contract NFTMarket is ERC721, ERC721URIStorage, ERC721Pausable, Ownable, ERC721B
     );
 
     modifier onlyOwner() {
-        require(msg.sender == _owner, "Only owner of the marketplace can change the listing price");
+        require(msg.sender == owner, "Only owner of the marketplace can change the listing price");
         _;
     }
 
-    constructor() ERC721("NFT Pixel Marketplace", "NPX"){
-        _owner == payable(msg.sender);
+    function pause() public onlyOwner {
+        _pause();
     }
 
+    function unpause() public onlyOwner {
+        _unpause();
+    }
+
+    function _update(address to, uint256 tokenId, address auth)
+        internal
+        override(ERC721, ERC721Pausable)
+        returns (address)
+    {
+        return super._update(to, tokenId, auth);
+    }
+
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        override(ERC721, ERC721URIStorage)
+        returns (string memory)
+    {
+        return super.tokenURI(tokenId);
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC721, ERC721URIStorage)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
+    }
+
+   
     function updateListingPrice(uint256 _listingPrice) 
         public 
         payable
@@ -69,7 +103,7 @@ contract NFTMarket is ERC721, ERC721URIStorage, ERC721Pausable, Ownable, ERC721B
 
     //creating market item
     function createMarketItem(uint256 tokenId, uint256 price) private {
-        require(_exists(tokenId), "ERC721: operator query for nonexistent token");
+        require(_ownerOf(tokenId) != address(0), "ERC721: operator query for nonexistent token");
         require(price > 0, "Price must be at least 1 wei");
         require(msg.value == listingPrice, "Price must be equal to listing price");
 
