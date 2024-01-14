@@ -3,10 +3,13 @@ import Web3Modal from "web3modal";
 import { ethers } from "ethers";
 import Router from "next/router";
 import axios from "axios";
-import {create, create as ipfsHttpClient} from "ipfs-http-client";
 //import address contract
 import { NFTMarketplaceAdress, NFTMarketplaceAbi } from "./constants";
 
+
+//config project ipfs
+const projectId = "139dc1e86c7a730736f0";
+const projectSecret = "196c07b24530bf180bff5806b4ead3fba4a2cd6436a3ac3f9e2efff6cb2467e3";
 
 //fetching data from smart contract
 const fetchContract = (signerOrProvider) => new ethers.Contract(
@@ -20,7 +23,7 @@ const connectSmartContract = async () => {
     try{
         const web3Modal = new Web3Modal();
         const connetion = await web3Modal.connect();
-        const provider = new ethers.providers.Web3Provider(connetion);
+        const provider = new ethers.BrowserProvider(connetion);
         const signer = provider.getSigner();
         const contract = fetchContract(signer);
         console.log("contract", contract);
@@ -30,7 +33,7 @@ const connectSmartContract = async () => {
     }
 }
 
-const client = ipfsHttpClient("https://ipfs.infura.io:5001/api/v0");
+//const client = ipfsHttpClient("https://ipfs.infura.io:5001/api/v0");
 export const NFTMarketplaceContext = React.createContext();
 export const NFTMarketplaceProvider = ({children}) => {
     const titledata = "NFT Marketplace";
@@ -75,25 +78,54 @@ export const NFTMarketplaceProvider = ({children}) => {
     //uploading image to ipfs
     const uploadFileIpfs = async (file) => {
         try{
-            const added = await client.add({content: file});
-            const url = `https://ipfs.infura.io/ipfs/${added.path}`;
-            return url;
+            if(file){
+                const formData = new FormData();
+                formData.append("file", file);
+                const resFile = await axios({
+                    method: "post",
+                    url: 'https://api.pinata.cloud/pinning/pinFileToIPFS',
+                    data: formData,
+                    headers: {
+                        "Content-Type": `multipart/form-data`,
+                        pinata_api_key: projectId,
+                        pinata_secret_api_key: projectSecret
+                    }
+                })
+                const url = `https://gateway.pinata.cloud/ipfs/${resFile.data.IpfsHash}`;
+                return url;
+            }
         }catch(error){
             console.log(error,"Something went wrong while uploading file to ipfs");
         }
     }
 
     //create market item
-    const createNFT = async(formInput,fileUrl, router) => {
-            const {name, description, price } = formInput;
+    const createNFT = async(name, description, price,fileUrl, router) => {
             if(!name || !description || !price || !fileUrl){
                 return alert("Please fill all the fields");
             }
-            const data = JSON.stringify({name, description, image: fileUrl});
             try{
-                const added  = await client.add(data);
-                const url = `https://ipfs.infura.io/ipfs/${added.path}`;
-                await createSale(url, price);
+                const data = {
+                    name:name, 
+                    description:description, 
+                    images:fileUrl
+                };
+
+                const resFile = await axios({
+                    method: "post",
+                    url: 'https://api.pinata.cloud/pinning/pinJSONToIPFS',
+                    data: JSON.stringify({
+                        pinataContent: data
+                    }),
+                    headers: {
+                        "Content-Type": `application/json`,
+                        pinata_api_key: projectId,
+                        pinata_secret_api_key: projectSecret
+                    }
+                })
+                const url = `https://gateway.pinata.cloud/ipfs/${resFile.data.IpfsHash}`;
+                console.log("url metadata: ",url);
+                await createSale(url, price); 
             }catch(error){
                 console.log(error,"Something went wrong while uploading file to ipfs");
             }
@@ -102,12 +134,13 @@ export const NFTMarketplaceProvider = ({children}) => {
     //create sale
     const createSale = async (url, formInputPrice, isReselling, id) => {
         try{
-            const price = ethers.utils.parseUnits(formInputPrice, "ether");
+            const price = ethers.parseUnits(formInputPrice, "ether");
             const contract = await connectSmartContract();
-
-            const listingPrice = await contract.getListingPrice();
-            const transtion = !isReselling ? await contract.createToken(url, price, {value: listingPrice.toString()}) : await contract.reSaleToken(url,price,{value: listingPrice.toString()}); 
-            await transtion.wait();   
+            //console.log("FUNCTIONS", contract.interface.forEachFunction((f)=>console.log(f)))
+            const listingPrice = await contract.getListingPrice.staticCallResult('');
+            //const transtion = !isReselling ? await contract.createToken(url, price, {value: listingPrice.toString()}) : await contract.reSaleToken(url,price,{value: listingPrice.toString()}); 
+            //await transtion.wait();
+            console.log("transtion: ",listingPrice);  
         }catch(error){
             console.log(error,"Something went wrong while creating sale");
         }

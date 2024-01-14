@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@pinata/sdk": "^2.1.0",
     "axios": "^1.6.5",
     "ether": "^0.0.9",
     "ipfs-http-client": "^60.0.1",
