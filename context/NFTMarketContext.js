@@ -1,11 +1,9 @@
 import React, {useEffect,useState,useContext} from "react";
 import Web3Modal from "web3modal";
 import { ethers } from "ethers";
-import Router from "next/router";
 import axios from "axios";
 //import address contract
 import { NFTMarketplaceAdress, NFTMarketplaceAbi } from "./constants";
-
 
 //config project ipfs
 const projectId = "139dc1e86c7a730736f0";
@@ -21,11 +19,16 @@ const fetchContract = (signerOrProvider) => new ethers.Contract(
 //connectiong smart contract
 const connectSmartContract = async () => {
     try{
-        const web3Modal = new Web3Modal();
+        const web3Modal = new Web3Modal({
+            cacheProvider:false
+        });
+        
         const connetion = await web3Modal.connect();
         const provider = new ethers.BrowserProvider(connetion);
-        const signer = provider.getSigner();
+        //const p = new WalletConnectProvider(providerOptions);
+        const signer = await provider.getSigner();
         const contract = fetchContract(signer);
+
         console.log("contract", contract);
         return contract;
     }catch(error){
@@ -53,9 +56,8 @@ export const NFTMarketplaceProvider = ({children}) => {
                
             }else{
                 console.log("No account found");
-                alert("No account found");
             }
-            console.log("currentAccount", currentAccount);
+            
 
         }catch(error){
             console.log(error,"Something went wrong while checking wallet connection");
@@ -67,7 +69,7 @@ export const NFTMarketplaceProvider = ({children}) => {
             if(!window.ethereum){
                 return alert("Please install metamask");
             }
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccount' });
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
             setCurrentAccount(accounts[0]);
             window.location.reload();
         }catch(error){
@@ -134,13 +136,13 @@ export const NFTMarketplaceProvider = ({children}) => {
     //create sale
     const createSale = async (url, formInputPrice, isReselling, id) => {
         try{
-            const price = ethers.parseUnits(formInputPrice, "ether");
+            const price = ethers.parseUnits(formInputPrice ,"ether");
             const contract = await connectSmartContract();
-            //console.log("FUNCTIONS", contract.interface.forEachFunction((f)=>console.log(f)))
-            const listingPrice = await contract.getListingPrice.staticCallResult('');
-            //const transtion = !isReselling ? await contract.createToken(url, price, {value: listingPrice.toString()}) : await contract.reSaleToken(url,price,{value: listingPrice.toString()}); 
-            //await transtion.wait();
-            console.log("transtion: ",listingPrice);  
+            const listingPrice = await contract.getListingPrice();
+            const transtion = !isReselling ? await contract.createToken(url, price, {value: listingPrice}) : await contract.reSaleToken(url,price,{value: listingPrice}); 
+            await transtion.wait();
+            //const createToken = await contract.createToken(url, formatPrice, {value: listingPrice.toString()});
+            console.log("transtion: ",transtion);  
         }catch(error){
             console.log(error,"Something went wrong while creating sale");
         }
@@ -149,24 +151,24 @@ export const NFTMarketplaceProvider = ({children}) => {
     //fetch nft
     const fetchNFTs = async () => {
         try{
-            const provider = new ethers.providers.JsonRpcProvider();
+            const provider = new ethers.BrowserProvider(window.ethereum)
             const contract = fetchContract(provider);
 
-            const data = await contract.fetchMarketItems();
+            const data = await contract.fetchMarketItem();
             //console.log(data,"data")
             const items = await Promise.all(data.map(async({tokenId, seller,owner,price: unformattedPrice})=>{
                 const tokenUri = await contract.tokenURI(tokenId);
 
-                const {data: {image, name, description}} = await axios.get(tokenUri);
+                const {data: {images, name, description}} = await axios.get(tokenUri);
 
 
-                const price = ethers.utils.formatUnits(unformattedPrice.toString(), "ether");
+                const price = ethers.formatUnits(unformattedPrice.toString(), "ether");
                 const item = {
                     price,
-                    tokenId: tokenId.toNumber(),
+                    tokenId: Number(tokenId),
                     seller,
                     owner,
-                    image,
+                    images,
                     name,
                     description
                 }
@@ -177,6 +179,10 @@ export const NFTMarketplaceProvider = ({children}) => {
             console.log(error,"Something went wrong while fetching nft");
         }
     }
+
+    useEffect(() => {
+        fetchNFTs();
+    },[])
 
     const fetchMyNFTorListedNFT = async (type) => {
         try{
@@ -209,7 +215,7 @@ export const NFTMarketplaceProvider = ({children}) => {
     const buyNFT = async (nft) => {
         try{
             const contract = await connectSmartContract();
-            const price = ethers.utils.parseUnits(nft.price.toString(), "ether");
+            const price = ethers.parseUnits(nft.price.toString(), "ether");
             const transtion = await contract.createMarketSale(nft.tokenId, {value: price});
             await transtion.wait();
         }catch(error){
