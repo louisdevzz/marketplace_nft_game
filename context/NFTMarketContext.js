@@ -4,7 +4,7 @@ import { ethers } from "ethers";
 import axios from "axios";
 //import address contract
 import { NFTMarketplaceAdress, NFTMarketplaceAbi } from "./constants";
-
+import { StakingAdress, StakingAbi } from "./Staking/context";
 //config project ipfs
 const projectId = "139dc1e86c7a730736f0";
 const projectSecret = "196c07b24530bf180bff5806b4ead3fba4a2cd6436a3ac3f9e2efff6cb2467e3";
@@ -15,6 +15,32 @@ const fetchContract = (signerOrProvider) => new ethers.Contract(
     NFTMarketplaceAbi, 
     signerOrProvider
 );
+
+const fetchStakingContract = (signerOrProvider) => new ethers.Contract(
+    StakingAdress,
+    StakingAbi,
+    signerOrProvider
+)
+
+const connectStakingContract = async () => {
+    try{
+        const web3Modal = new Web3Modal({
+            cacheProvider:false
+        });
+        
+        const connetion = await web3Modal.connect();
+        const provider = new ethers.BrowserProvider(connetion);
+        //const p = new WalletConnectProvider(providerOptions);
+        const signer = await provider.getSigner();
+        const contract = fetchStakingContract(signer);
+
+        console.log("contract", contract);
+        return contract;
+    }catch(error){
+        console.log(error,"Something went wrong while connecting with contract");
+    }
+}
+
 
 //connectiong smart contract
 const connectSmartContract = async () => {
@@ -218,8 +244,42 @@ export const NFTMarketplaceProvider = ({children}) => {
             const price = ethers.parseUnits(nft.price.toString(), "ether");
             const transtion = await contract.createMarketSale(nft.tokenId, {value: price});
             await transtion.wait();
+            console.log("transtion buy nft: ",transtion);
         }catch(error){
             console.log(error,"Something went wrong while buying nft");
+        }
+    }
+
+    const stakingNFT = async (tokenId) => {
+        try{
+            const contract = await connectStakingContract();
+            const transtion = await contract.stake(tokenId);
+            await transtion.wait();
+            console.log("transtion staking nft: ",transtion);
+        }catch(error){
+            console.log(error,"Something went wrong while staking nft");
+        }
+    }
+    
+    // const claimNFT = async (tokenId) => {
+    //     try{
+    //         const contract = await connectStakingContract();
+    //         const transtion = await contract.claim(tokenId);
+    //         await transtion.wait();
+    //         console.log("transtion staking nft: ",transtion);
+    //     }catch(error){
+    //         console.log(error,"Something went wrong while staking nft");
+    //     }
+    // }
+
+    const unStakingNFT = async (tokenId) => {
+        try{
+            const contract = await connectStakingContract();
+            const transtion = await contract.unstake(tokenId);
+            await transtion.wait();
+            console.log("transtion staking nft: ",transtion);
+        }catch(error){
+            console.log(error,"Something went wrong while unstaking nft");
         }
     }
 
@@ -233,7 +293,10 @@ export const NFTMarketplaceProvider = ({children}) => {
             createNFT,
             fetchNFTs,
             fetchMyNFTorListedNFT,
-            buyNFT
+            buyNFT,
+            stakingNFT,
+            
+            unStakingNFT
         }}>
             {children}
         </NFTMarketplaceContext.Provider>

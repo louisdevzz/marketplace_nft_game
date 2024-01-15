@@ -13,8 +13,19 @@ const Home = () => {
   const [priceNFT,setPriceNFT] = useState("");
   const [nfts, setNfts] = useState([]);
   const [nftsCopy, setNftsCopy] = useState([]);
-  
-  const {checkWalletConnected,currentAccount,connectWallet,uploadFileIpfs,createNFT,fetchNFTs} = useContext(NFTMarketplaceContext);
+  const [nftId, setNftId] = useState(0);
+
+  const {
+    checkWalletConnected,
+    currentAccount,
+    connectWallet,
+    uploadFileIpfs,
+    createNFT,
+    fetchNFTs,
+    stakingNFT,
+    unStakingNFT,
+    
+  } = useContext(NFTMarketplaceContext);
  
   const imageUpload = async (e) => {
     const file = e.target.files[0];
@@ -28,6 +39,17 @@ const Home = () => {
     console.log("create NFT");
     createNFT(nameNFT,descriptionNFT,priceNFT,fileUrl);
   }
+
+  const Staking = () =>{  
+    console.log("Staking");
+    stakingNFT(Number(nftId))
+  }
+
+  const Unstaking = () =>{
+    console.log("Unstaking");
+    unStakingNFT(Number(nftId));
+  }
+
 
   useEffect(() => {
     checkWalletConnected();
@@ -69,18 +91,52 @@ const Home = () => {
       <div className="flex flex-wrap mt-5">
         {nfts.map((item,index)=>{
           return(
-            <div className="w-[200px] h-[200px] border border-gray-400 m-2" key={item.name}>
+            <a href={`${index}`} className="w-[200px] h-[200px] border border-gray-400 m-2" key={index}>
               <img src={item.images} className="w-full h-full object-cover"/>
               <div className="flex flex-col p-2">
                 <p className="text-lg font-bold">{item.name}</p>
                 <p className="text-sm">{item.description}</p>
                 <p className="text-sm">{item.price}</p>
               </div>
-            </div>
+            </a>
           )
         })}
       </div>
-      
+      <div className="flex mt-[90px]">
+        <input type="text" className="border border-gray-400 px-3 py-2 mt-2" placeholder="Enter NFT ID" onChange={(e)=>setNftId(e.target.value)}/>
+      </div>
+      <div className="flex">
+        <div>
+          <button onClick={()=>Staking()} className="relative px-5 py-3 overflow-hidden mt-[10px] font-medium text-gray-600 bg-gray-100 border border-gray-100 rounded-lg shadow-inner group">
+            <span className="absolute top-0 left-0 w-0 h-0 transition-all duration-200 border-t-2 border-gray-600 group-hover:w-full ease"></span>
+            <span className="absolute bottom-0 right-0 w-0 h-0 transition-all duration-200 border-b-2 border-gray-600 group-hover:w-full ease"></span>
+            <span className="absolute top-0 left-0 w-full h-0 transition-all duration-300 delay-200 bg-gray-600 group-hover:h-full ease"></span>
+            <span className="absolute bottom-0 left-0 w-full h-0 transition-all duration-300 delay-200 bg-gray-600 group-hover:h-full ease"></span>
+            <span className="absolute inset-0 w-full h-full duration-300 delay-300 bg-gray-900 opacity-0 group-hover:opacity-100"></span>
+            <span className="relative transition-colors duration-300 delay-200 group-hover:text-white ease">Staking</span>
+          </button>
+        </div>
+        <div>
+          <button className="box-border relative z-30 inline-flex mt-[13px] ml-5 items-center justify-center w-auto px-8 py-3 overflow-hidden font-bold text-white transition-all duration-300 bg-indigo-600 rounded-md cursor-pointer group ring-offset-2 ring-1 ring-indigo-300 ring-offset-indigo-200 hover:ring-offset-indigo-500 ease focus:outline-none">
+            <span className="absolute bottom-0 right-0 w-8 h-20 -mb-8 -mr-5 transition-all duration-300 ease-out transform rotate-45 translate-x-1 bg-white opacity-10 group-hover:translate-x-0"></span>
+            <span className="absolute top-0 left-0 w-20 h-8 -mt-1 -ml-12 transition-all duration-300 ease-out transform -rotate-45 -translate-x-1 bg-white opacity-10 group-hover:translate-x-0"></span>
+            <span className="relative z-20 flex items-center text-sm">
+            <svg className="relative w-5 h-5 mr-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            Claim
+            </span>
+          </button>
+        </div>
+        <div>
+          <button onClick={()=>Unstaking()} className="box-border relative z-30 inline-flex mt-[13px] ml-5 items-center justify-center w-auto px-8 py-3 overflow-hidden font-bold text-white transition-all duration-300 bg-indigo-600 rounded-md cursor-pointer group ring-offset-2 ring-1 ring-indigo-300 ring-offset-indigo-200 hover:ring-offset-indigo-500 ease focus:outline-none">
+            <span className="absolute bottom-0 right-0 w-8 h-20 -mb-8 -mr-5 transition-all duration-300 ease-out transform rotate-45 translate-x-1 bg-white opacity-10 group-hover:translate-x-0"></span>
+            <span className="absolute top-0 left-0 w-20 h-8 -mt-1 -ml-12 transition-all duration-300 ease-out transform -rotate-45 -translate-x-1 bg-white opacity-10 group-hover:translate-x-0"></span>
+            <span className="relative z-20 flex items-center text-sm">
+            <svg className="relative w-5 h-5 mr-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            Unstaking
+            </span>
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
