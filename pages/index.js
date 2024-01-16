@@ -2,6 +2,7 @@ import Header from "@/components/Header/header";
 //import { NFTMarketplaceContext } from '@/context/NFTMarketContext';
 import { useEffect,useState,useContext } from "react";
 import { NFTMarketplaceContext } from "@/context/NFTMarketContext";
+import Link from "next/link";
 
 
 
@@ -89,14 +90,14 @@ const Home = () => {
       <div className="flex flex-wrap mt-5">
         {nfts.map((item,index)=>{
           return(
-            <a href={`${index}`} className="w-[200px] h-[200px] border border-gray-400 m-2" key={index}>
+            <Link href={`/nft/${item.tokenId}`} className="w-[200px] h-[200px] border border-gray-400 m-2" key={index}>
               <img src={item.images} className="w-full h-full object-cover"/>
               <div className="flex flex-col p-2">
                 <p className="text-lg font-bold">{item.name}</p>
                 <p className="text-sm">{item.description}</p>
                 <p className="text-sm">{item.price}</p>
               </div>
-            </a>
+            </Link>
           )
         })}
       </div>

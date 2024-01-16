@@ -9,6 +9,8 @@ import { StakingAdress, StakingAbi } from "./Staking/context";
 const projectId = "139dc1e86c7a730736f0";
 const projectSecret = "196c07b24530bf180bff5806b4ead3fba4a2cd6436a3ac3f9e2efff6cb2467e3";
 
+
+
 //fetching data from smart contract
 const fetchContract = (signerOrProvider) => new ethers.Contract(
     NFTMarketplaceAdress, 
@@ -21,6 +23,16 @@ const fetchStakingContract = (signerOrProvider) => new ethers.Contract(
     StakingAbi,
     signerOrProvider
 )
+const gasPrice = async() =>{
+    const web3Modal = new Web3Modal({
+        cacheProvider:false
+    });
+    
+    const connetion = await web3Modal.connect();
+    const provider = new ethers.BrowserProvider(connetion);
+    const gas = (await provider.getFeeData()).gasPrice;
+    return gas;
+}
 
 const connectStakingContract = async () => {
     try{
@@ -52,9 +64,10 @@ const connectSmartContract = async () => {
         const connetion = await web3Modal.connect();
         const provider = new ethers.BrowserProvider(connetion);
         //const p = new WalletConnectProvider(providerOptions);
+        
         const signer = await provider.getSigner();
         const contract = fetchContract(signer);
-
+        // setGasPrice((await provider.getFeeData()).gasPrice)
         console.log("contract", contract);
         return contract;
     }catch(error){
@@ -240,11 +253,15 @@ export const NFTMarketplaceProvider = ({children}) => {
     //buy nft
     const buyNFT = async (nft) => {
         try{
+            console.log(nft)
             const contract = await connectSmartContract();
-            const price = ethers.parseUnits(nft.price.toString(), "ether");
-            const transtion = await contract.createMarketSale(nft.tokenId, {value: price});
-            await transtion.wait();
-            console.log("transtion buy nft: ",transtion);
+            const price = ethers.parseUnits(nft.price,"ether");
+            console.log(await gasPrice())
+            //const tx = await contract.createMarketSale(nft.tokenId, { value: price})
+            //console.log(price)
+            //const transtion = await contract.createMarketSale(nft.tokenId, {value: price});
+            //await tx.wait();
+            //console.log("transtion buy nft: ",tx);
         }catch(error){
             console.log(error,"Something went wrong while buying nft");
         }
@@ -283,6 +300,17 @@ export const NFTMarketplaceProvider = ({children}) => {
         }
     }
 
+    const findNFT = async(tokenId) =>{
+        try{
+            const contract = await connectSmartContract();
+            const transtion = await contract.tokenURI(tokenId);
+            //await transtion.wait();
+            console.log("transtion find nft: ",transtion);
+        }catch(error){
+            console.log(error)
+        }
+    }
+
     return(
         <NFTMarketplaceContext.Provider value={{
             titledata,
@@ -295,7 +323,7 @@ export const NFTMarketplaceProvider = ({children}) => {
             fetchMyNFTorListedNFT,
             buyNFT,
             stakingNFT,
-            
+            findNFT,
             unStakingNFT
         }}>
             {children}
